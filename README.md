@@ -11,5 +11,5 @@ You will need
 - JDK at least 21
 - a local mysql server
 
-Once the project is imported into eclipse, update config.properties for your local database.  
-The gradle tests should then be able to run. There is also a gradle task to produce a .war to deploy to your tomcat server.
+Import the project into eclipse, then update config.properties for your local database.  
+The gradle tests should then be able to run. To produce a .war suitable for deploying to your tomcat server, run ./gradlew war
