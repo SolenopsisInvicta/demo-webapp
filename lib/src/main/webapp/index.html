@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Welcome</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 480px; margin: 40px auto; }
+  label { display: block; margin: 8px 0; }
+  input { width: 100%; padding: 8px; box-sizing: border-box; }
+  .buttons { margin-top: 12px; display: flex; gap: 8px; }
+  button { padding: 8px 16px; }
+  #message { margin-top: 12px; color: red; }
+</style>
+</head>
+<body>
+  <h1>Demo Webapp</h1>
+
+  <form id="loginForm">
+    <label>
+      Username
+      <input type="text" id="username" name="username" required />
+    </label>
+    <label>
+      Password
+      <input type="password" id="password" name="password" required />
+    </label>
+
+    <div class="buttons">
+      <button type="submit">Login</button>
+      <button type="button" id="signupButton">Sign up</button>
+    </div>
+  </form>
+
+  <div id="message" aria-live="polite"></div>
+
+  <script>
+    async function sendAuthRequest(path, username, password) {
+      try {
+        const res = await fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ username, password })
+        });
+
+        if (res.redirected) {
+          window.location.href = res.url;
+          return;
+        }
+
+        const text = await res.text();
+        document.getElementById('message').textContent = text;
+      } catch (err) {
+        document.getElementById('message').textContent = 'Network error.';
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      sendAuthRequest('login', username, password);
+    });
+
+    document.getElementById('signupButton').addEventListener('click', function () {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) {
+        document.getElementById('message').textContent = 'Please enter a username and password.';
+        return;
+      }
+      sendAuthRequest('signup', username, password);
+    });
+  </script>
+</body>
+</html>

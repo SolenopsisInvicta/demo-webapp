@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Home</title>
+<style>
+body {
+	font-family: Arial, sans-serif;
+	max-width: 640px;
+	margin: 40px auto;
+}
+header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+.card {
+	border: 1px solid #ddd;
+	padding: 16px;
+	border-radius: 6px;
+	margin-top: 20px;
+}
+.label {
+	color: #666;
+	font-size: 0.9rem;
+}
+button {
+	padding: 8px 14px;
+}
+#message {
+	margin-top: 12px;
+	color: red;
+}
+
+.email-row { display: flex; align-items: center; gap: 12px; }
+.email-display { flex: 1; }
+.edit-controls { display: none; gap: 8px; }
+.edit-controls.active { display: inline-flex; }
+</style>
+</head>
+<body>
+	<header>
+		<h1>
+			Welcome, <span id="username">User</span>
+		</h1>
+		<button id="logoutBtn">Logout</button>
+	</header>
+
+	<section class="card" aria-live="polite">
+		<div class="email-row">
+			<div style="flex:1">
+				<div class="label">Email</div>
+				<div id="email" class="email-display">address@domain.com</div>
+			</div>
+
+			<div>
+				<button id="editEmailBtn" type="button">Edit</button>
+
+				<span class="edit-controls" id="editControls">
+					<input type="email" id="emailInput" aria-label="New email" />
+					<button id="saveEmailBtn" type="button">Save</button>
+					<button id="cancelEmailBtn" type="button">Cancel</button>
+				</span>
+			</div>
+		</div>
+
+		<div style="margin-top: 12px;">
+			<div class="label">Member since</div>
+			<div id="memberSince">1970-01-01</div>
+		</div>
+	</section>
+
+	<div id="message" role="status" aria-live="polite"></div>
+
+	<script>
+    (async function loadUser() {
+      try {
+        const res = await fetch('/user/userinfo', { credentials: 'same-origin' });
+        
+        if (res.status === 401) {
+        	document.getElementById('message').textContent = 'Authentication error, try logging in again.';
+          	return;
+        }
+
+        if (!res.ok) {
+         	document.getElementById('message').textContent = 'Server error.';
+          	return;
+        }
+
+        const data = await res.json();
+        if (data.username) document.getElementById('username').textContent = data.username;
+        if (data.email) {
+          document.getElementById('email').textContent = data.email;
+          document.getElementById('emailInput').value = data.email;
+        }
+        if (data.memberSince) document.getElementById('memberSince').textContent = data.memberSince;
+      } catch (e) {
+    	document.getElementById('message').textContent = 'Network error.';
+      }
+    })();
+
+    document.getElementById('logoutBtn').addEventListener('click', async function () {
+      try {
+        const res = await fetch('/user/logout', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+
+        if (res.redirected) {
+          	window.location.href = res.url;
+        	return;
+        }
+
+        const text = await res.text();
+        document.getElementById('message').textContent = text || 'Logout failed.';
+      } catch (err) {
+        document.getElementById('message').textContent = 'Network error.';
+      }
+    });
+
+    const editBtn = document.getElementById('editEmailBtn');
+    const editControls = document.getElementById('editControls');
+    const saveBtn = document.getElementById('saveEmailBtn');
+    const cancelBtn = document.getElementById('cancelEmailBtn');
+    const emailDiv = document.getElementById('email');
+    const emailInput = document.getElementById('emailInput');
+    const messageDiv = document.getElementById('message');
+
+    editBtn.addEventListener('click', () => {
+      editControls.classList.add('active');
+      editBtn.style.display = 'none';
+      emailInput.focus();
+      messageDiv.textContent = '';
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      editControls.classList.remove('active');
+      editBtn.style.display = '';
+      
+      emailInput.value = emailDiv.textContent;
+      messageDiv.textContent = '';
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      const newEmail = emailInput.value.trim();
+      if (!newEmail) {
+        messageDiv.textContent = 'Please enter a valid email.';
+        return;
+      }
+
+      try {
+        const res = await fetch('/user/userinfo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ email: newEmail })
+        });
+
+        if (res.status === 401) {
+        	document.getElementById('message').textContent = 'Authentication error, try logging in again.';
+          	return;
+        }
+
+        const text = await res.text();
+
+        if (res.ok) {
+          emailDiv.textContent = newEmail;
+          editControls.classList.remove('active');
+          editBtn.style.display = '';
+          messageDiv.style.color = 'green';
+          messageDiv.textContent = text || 'Email updated.';
+        } else {
+          messageDiv.style.color = 'red';
+          messageDiv.textContent = text || 'Failed to update email.';
+        }
+      } catch (err) {
+    	  document.getElementById('message').textContent = 'Network error.';
+      }
+    });
+  </script>
+</body>
+</html>
